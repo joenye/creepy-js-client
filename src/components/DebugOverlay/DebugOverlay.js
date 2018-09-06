@@ -2,15 +2,21 @@ import React from 'react'
 
 import './DebugOverlay.css'
 
-const formatPosition = pos => `(${pos.x || 0}, ${pos.y || 0}, ${pos.z || 0})`
+const formatPosition = pos => {
+  if (pos) {
+    return `(${pos.x || 0}, ${pos.y || 0}, ${pos.z || 0})`
+  } else {
+    return 'Unknown'
+  }
+}
 
 const DebugOverlay = (props) => {
   const state = props.state
-  const {currentPos} = state
+  const {mapPos} = state
 
   return (
     <div className='DebugOverlay'>
-      Position: {formatPosition(currentPos)}
+      Position: {formatPosition(mapPos)}
     </div>
   )
 }

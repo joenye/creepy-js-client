@@ -1,8 +1,8 @@
-const Position = (x, y, floor = 1) => ({x: x, y: y, floor: floor})
+const Position = (x, y, z = 1) => ({x: x, y: y, z: z})
 
-export const northOf = (position) => Position(position.x, position.y + 1, position.floor)
-export const eastOf = (position) => Position(position.x + 1, position.y, position.floor)
-export const southOf = (position) => Position(position.x, position.y - 1, position.floor)
-export const westOf = (position) => Position(position.x - 1, position.y, position.floor)
+export const northOf = (pos) => Position(pos.x, pos.y + 1, pos.z)
+export const eastOf = (pos) => Position(pos.x + 1, pos.y, pos.z)
+export const southOf = (pos) => Position(pos.x, pos.y - 1, pos.z)
+export const westOf = (pos) => Position(pos.x - 1, pos.y, pos.z)
 
 export default Position

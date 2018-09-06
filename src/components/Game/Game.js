@@ -88,24 +88,24 @@ class Game extends Component {
 
     // TODO: Refactor as part of refresh logic
     fetch('http://localhost:5001/current')
-      .then(resp => resp.text())
-      .then(svgXml => this.setBackground(svgXml, entrancePos))
+      .then(resp => resp.json())
+      .then(resp => {
+        let tiles = this.state.tiles.slice()
+        const updatedProps = {
+          isLoading: false,
+          background: resp.background
+        }
+        tiles = updatePropsAt(tiles, entrancePos, updatedProps)
+        this.setState({
+          tiles: tiles,
+          mapPos: resp.current_position
+        })
+      })
 
     this.state = {
       tiles: tiles,
       currentPos: entrancePos
     }
-  }
-
-  setBackground (svgXml, targetPos) {
-    let tiles = this.state.tiles.slice()
-
-    const updatedProps = {
-      isLoading: false,
-      background: svgXml
-    }
-    tiles = updatePropsAt(tiles, targetPos, updatedProps)
-    this.setState({ tiles: tiles })
   }
 
   asyncNavigate (targetPos, targetDirection) {
@@ -121,12 +121,12 @@ class Game extends Component {
     fetch('http://localhost:5001/navigate?direction=' + targetDirection)
       .then(resp => {
         if (resp.ok) {
-          return resp.text()
+          return resp.json()
         } else {
           throw new Error('The way is shut')
         }
       })
-      .then(svgXml => {
+      .then(resp => {
         let tiles = this.state.tiles
         const currentPos = this.state.currentPos
         const { width, height } = this.props
@@ -134,14 +134,18 @@ class Game extends Component {
 
         const updatedProps = {
           isLoading: false,
-          background: svgXml
+          background: resp.background
         }
         if (targetTile.rotation == null) {
           // Add a random tilt for visual effect
           updatedProps['rotation'] = _.random(-1.8, 1.5, true)
         }
         tiles = updatePropsAt(tiles, targetPos, updatedProps)
-        this.setState({ tiles: tiles, currentPos: targetPos })
+        this.setState({
+          tiles: tiles,
+          currentPos: targetPos,
+          mapPos: resp.current_position
+        })
       })
       .catch(() => {
         let tiles = this.state.tiles
