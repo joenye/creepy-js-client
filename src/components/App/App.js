@@ -1,17 +1,15 @@
-import React, { Component } from 'react'
+import React from 'react'
 
 import './App.css'
 
-import Game from '../Game/Game.js'
+import ConnectedGame from '../Game/ConnectedGame.js'
 
-class App extends Component {
-  render () {
-    return (
-      <div className='App'>
-        <Game width='5' height='5' />
-      </div>
-    )
-  }
+const App = () => {
+  return (
+    <div className='App'>
+      <ConnectedGame />
+    </div>
+  )
 }
 
 export default App

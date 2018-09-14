@@ -4,15 +4,15 @@ import './Grid.css'
 
 import Tile from '../Tile/Tile.js'
 import Position from '../../utils/position.js'
-import { getElement, gridWidth, gridHeight } from '../../utils/positionGrid.js'
+import { getPropsAt, gridWidth, gridHeight } from '../../utils/positionGrid.js'
 
 class Grid extends Component {
   renderTile (gridPosition) {
     return (
       <Tile
         key={[gridPosition.x, gridPosition.y, gridPosition.floor]}
-        onClick={() => this.props.onClick(gridPosition)}
-        {...getElement(this.props.tiles, gridPosition)}
+        onClick={(event) => this.props.onClick(event, gridPosition)}
+        {...getPropsAt(this.props.tiles, gridPosition)}
       />
     )
   }

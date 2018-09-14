@@ -11,10 +11,13 @@ const new2dArray = (width, height) => {
 export const gridWidth = (grid) => grid[0].length
 export const gridHeight = (grid) => grid.length
 
-export const getElement = (grid, position) => grid[position.x][position.y]
+export const getPropsAt = (grid, position) => grid[position.x][position.y]
 
-export const updatePropsAt = (grid_, position, newProps) => {
-  let grid = grid_.slice()
+export const updatePropsAt = (grid, position, newProps) => {
+  if (!(grid.hasOwnProperty(position.x) && grid[position.x].hasOwnProperty(position.y))) {
+    return grid
+  }
+
   grid[position.x][position.y] = {
     ...grid[position.x][position.y],
     ...newProps
@@ -22,14 +25,12 @@ export const updatePropsAt = (grid_, position, newProps) => {
   return grid
 }
 
-export const erasePropsAt = (grid_, position) => {
-  const grid = grid_.slice()
+export const erasePropsAt = (grid, position) => {
   grid[position.x][position.y] = {}
   return grid
 }
 
-export const updateGridProps = (grid_, newProps) => {
-  const grid = grid_.slice()
+export const updateGridProps = (grid, newProps) => {
   for (let x = 0; x < gridWidth(grid); x++) {
     for (let y = 0; y < gridHeight(grid); y++) {
       grid[x][y] = { ...grid[x][y], ...newProps }
@@ -38,8 +39,7 @@ export const updateGridProps = (grid_, newProps) => {
   return grid
 }
 
-export const eraseGridProps = (grid_) => {
-  const grid = grid_.slice()
+export const eraseGridProps = (grid) => {
   for (let x = 0; x < gridWidth(grid); x++) {
     for (let y = 0; y < gridHeight(grid); y++) {
       grid[x][y] = {}
