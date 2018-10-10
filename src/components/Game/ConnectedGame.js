@@ -9,7 +9,7 @@ const mapStateToProps = (state, ownProps) => ({
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
   onClick: (event, targetPos) => {
-    dispatch(receiveClick(event.clientX, event.clientY))
+    dispatch(receiveClick(event.pageX, event.pageY))
     dispatch(navigateRequest(targetPos))
   }
 })

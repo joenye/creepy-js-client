@@ -33,9 +33,9 @@ const CLEAR_ERRORS = 'CLEAR_ERRORS'
  * Action creators
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-export const receiveClick = (clientX, clientY) => ({
+export const receiveClick = (pageX, pageY) => ({
   type: RECEIVE_CLICK,
-  clickPos: { clientX, clientY }
+  clickPos: { pageX, pageY }
 })
 
 export const navigateRequest = (targetPos) => ({
@@ -78,8 +78,8 @@ const getDefaultState = () => {
 
   return {
     errors: null,
-    clickPos: { clientX: 0, clientY: 0 },
-    lastErrorClickPos: { clientX: 0, clientY: 0 },
+    clickPos: { pageX: 0, pageY: 0 },
+    lastErrorClickPos: { pageX: 0, pageY: 0 },
     tiles: tiles,
     currentPos: entrancePos
   }
@@ -197,7 +197,7 @@ function * onNavigateRequest (action) {
       target_pos: action.targetPos
     }
   }
-  emitJson(payload)
+  emitJson(payload) // yield call(..) on this doesn't work
   yield call(console.log, 'Emitted: ', payload)
 }
 

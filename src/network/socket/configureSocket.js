@@ -3,7 +3,7 @@ import io from 'socket.io-client'
 import { navigateSuccess, navigateError } from '../../redux/modules/game.js'
 
 const configureSocket = (dispatch) => {
-  const socket = io('https://5162c3d4.eu.ngrok.io', {
+  const socket = io('https://36fe17d2.eu.ngrok.io', {
     // Prioritise websocket over polling
     transports: ['websocket', 'polling']
   })
