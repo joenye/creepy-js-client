@@ -1,9 +1,9 @@
 import io from 'socket.io-client'
 
-import { navigateSuccess, navigateError } from '../../redux/modules/game.js'
+import { navigateSuccess, navigateError, refreshSuccess } from '../../redux/modules/game.js'
 
 const configureSocket = (dispatch) => {
-  const socket = io('https://36fe17d2.eu.ngrok.io', {
+  const socket = io('localhost:5000', {
     // Prioritise websocket over polling
     transports: ['websocket', 'polling']
   })
@@ -18,6 +18,9 @@ const configureSocket = (dispatch) => {
         break
       case 'NAVIGATE_ERROR':
         dispatch(navigateError(message.target_pos, message.errors))
+        break
+      case 'REFRESH_SUCCESS':
+        dispatch(refreshSuccess(message.current_pos))
         break
       default:
         break

@@ -9,12 +9,12 @@ import configureStore from './redux/configureStore.js'
 import configureSocket from './network/socket/configureSocket.js'
 
 const store = configureStore()
+export const socket = configureSocket(store.dispatch)
 
+// Render last
 ReactDOM.render(
   <Provider store={store}>
     <App class='root' />
   </Provider>,
   document.getElementById('root')
 )
-
-export const socket = configureSocket(store.dispatch)

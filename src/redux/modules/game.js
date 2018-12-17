@@ -1,6 +1,5 @@
 import _ from 'lodash'
-import { delay } from 'redux-saga'
-import { call, put, takeLatest } from 'redux-saga/effects'
+import { call, select, delay, put, takeLatest } from 'redux-saga/effects'
 
 import { emitJson } from '../../network/socket/api.js'
 import Position, {
@@ -25,6 +24,9 @@ const RECEIVE_CLICK = 'RECEIVE_CLICK'
 const NAVIGATE_REQUEST = 'NAVIGATE_REQUEST'
 const NAVIGATE_SUCCESS = 'NAVIGATE_SUCCESS'
 const NAVIGATE_ERROR = 'NAVIGATE_ERROR'
+
+const REFRESH_REQUEST = 'REFRESH_REQUEST'
+const REFRESH_SUCCESS = 'REFRESH_SUCCESS'
 
 const SHOW_ERRORS = 'SHOW_ERRORS'
 const CLEAR_ERRORS = 'CLEAR_ERRORS'
@@ -55,6 +57,15 @@ export const navigateError = (targetPos, errors) => ({
   errors: errors
 })
 
+export const refreshRequest = () => ({
+  type: REFRESH_REQUEST
+})
+
+export const refreshSuccess = (serverPos) => ({
+  type: REFRESH_SUCCESS,
+  serverPos: serverPos
+})
+
 export const showErrors = (errors) => ({
   type: SHOW_ERRORS,
   errors: errors
@@ -81,7 +92,7 @@ const getDefaultState = () => {
     clickPos: { pageX: 0, pageY: 0 },
     lastErrorClickPos: { pageX: 0, pageY: 0 },
     tiles: tiles,
-    currentPos: entrancePos
+    clientPos: entrancePos
   }
 }
 
@@ -100,12 +111,12 @@ const getInitialTiles = (width, height, entrancePos) => {
   return tiles
 }
 
-const updateVisibilities = (tiles, currentPos, targetPos) => {
+const updateVisibilities = (tiles, clientPos, targetPos) => {
   const directions = [northOf, eastOf, southOf, westOf]
 
   for (let direction of directions) {
-    const currentPosOffset = direction(currentPos)
-    tiles = updatePropsAt(tiles, currentPosOffset, {
+    const clientPosOffset = direction(clientPos)
+    tiles = updatePropsAt(tiles, clientPosOffset, {
       isCandidate: false
     })
     const targetPosOffset = direction(targetPos)
@@ -114,7 +125,7 @@ const updateVisibilities = (tiles, currentPos, targetPos) => {
     })
   }
 
-  tiles = updatePropsAt(tiles, currentPos, {
+  tiles = updatePropsAt(tiles, clientPos, {
     visibility: TileVisibility.VISITED
   })
   tiles = updatePropsAt(tiles, targetPos, {
@@ -123,6 +134,22 @@ const updateVisibilities = (tiles, currentPos, targetPos) => {
 
   return tiles
 }
+
+const serverToClientPos = (serverPos, clientOffset) => (
+  Position(
+    serverPos.x + clientOffset.x,
+    serverPos.y + clientOffset.y,
+    serverPos.z + clientOffset.z
+  )
+)
+
+const clientToServerPos = (clientPos, clientOffset) => (
+  Position(
+    clientPos.x - clientOffset.x,
+    clientPos.y - clientOffset.y,
+    clientPos.z - clientOffset.z
+  )
+)
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Reducer
@@ -156,11 +183,12 @@ export default function reducer (state = getDefaultState(), action) {
         errors: action.errors
       }
     case NAVIGATE_SUCCESS:
+      const newPos = serverToClientPos(action.newPos, state.clientOffset)
       tiles = state.tiles.slice()
-      tiles = updateVisibilities(tiles, state.currentPos, action.newPos)
+      tiles = updateVisibilities(tiles, state.clientPos, newPos)
 
-      const rotation = getPropsAt(tiles, action.newPos).rotation
-      tiles = updatePropsAt(tiles, action.newPos, {
+      const rotation = getPropsAt(tiles, newPos).rotation
+      tiles = updatePropsAt(tiles, newPos, {
         isLoading: false,
         background: action.background,
         rotation: rotation != null ? rotation : _.random(-1.8, 1.5, true)
@@ -168,7 +196,17 @@ export default function reducer (state = getDefaultState(), action) {
       return {
         ...state,
         tiles: tiles,
-        currentPos: action.newPos
+        clientPos: newPos
+      }
+    case REFRESH_SUCCESS:
+      // TODO: Update tiles too
+      return {
+        ...state,
+        clientOffset: Position(
+          state.clientPos.x - action.serverPos.x,
+          state.clientPos.y - action.serverPos.y,
+          state.clientPos.z - action.serverPos.z
+        )
       }
     case SHOW_ERRORS:
       return {
@@ -190,11 +228,22 @@ export default function reducer (state = getDefaultState(), action) {
  * Sagas
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
+function * onRefreshRequest () {
+  const payload = {
+    action: {
+      name: 'refresh_all'
+    }
+  }
+  emitJson(payload) // yield call(..) on this doesn't work
+  yield call(console.log, 'Emitted: ', payload)
+}
+
 function * onNavigateRequest (action) {
+  const clientOffset = yield select((state) => state.game.clientOffset)
   const payload = {
     action: {
       name: 'navigate',
-      target_pos: action.targetPos
+      target_pos: clientToServerPos(action.targetPos, clientOffset)
     }
   }
   emitJson(payload) // yield call(..) on this doesn't work
@@ -210,6 +259,7 @@ function * onShowErrors (seconds, action) {
 export const sagas = [
   function * watchActions () {
     yield takeLatest(NAVIGATE_REQUEST, onNavigateRequest)
+    yield takeLatest(REFRESH_REQUEST, onRefreshRequest)
   },
   function * watchErrors () {
     yield takeLatest(NAVIGATE_ERROR, onShowErrors, 1.6)

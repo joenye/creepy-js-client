@@ -10,14 +10,14 @@ const formatPos = pos => {
   }
 }
 
-const DebugOverlay = ({game}) => {
+const DebugOverlay = ({ game }) => {
   return (
     <div className='DebugOverlay'>
       <p>
-        Client Pos: {formatPos(game.currentPos)}
+        Client Pos: {formatPos(game.clientPos)}
       </p>
       <p>
-        Server Pos: {formatPos(game.mapPos)}
+        Client Offset: {formatPos(game.clientOffset)}
       </p>
     </div>
   )
