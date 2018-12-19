@@ -18,8 +18,10 @@ class Tile extends Component {
   }
 
   render () {
-    const { background, isLoading, isCandidate, visibility, rotation, onClick } = this.props
-    if (this.props.isLoading && this.ref.current) {
+    const { background, isLoading, isFocused, isCandidate, visibility, rotation } = this.props
+    const { onClick } = this.props
+
+    if (isFocused && this.ref.current) {
       scrollIntoView(this.ref.current, {
         time: 200,
         align: {

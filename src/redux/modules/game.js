@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { call, select, delay, put, takeLatest } from 'redux-saga/effects'
+import { call, select, delay, put, takeEvery } from 'redux-saga/effects'
 
 import { emitJson } from '../../network/socket/api.js'
 import Position, {
@@ -31,6 +31,9 @@ const REFRESH_ALL_SUCCESS = 'REFRESH_ALL_SUCCESS'
 const SHOW_ERRORS = 'SHOW_ERRORS'
 const CLEAR_ERRORS = 'CLEAR_ERRORS'
 
+const FOCUS_TILE = 'FOCUS_TILE'
+const CLEAR_FOCUS_TILE = 'CLEAR_FOCUS_TILE'
+
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Action creators
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -45,10 +48,10 @@ export const navigateRequest = (targetPos) => ({
   targetPos: targetPos
 })
 
-export const navigateSuccess = (newPos, newTile) => ({
+export const navigateSuccess = (targetPos, targetTile) => ({
   type: NAVIGATE_SUCCESS,
-  newPos: newPos,
-  newTile: newTile
+  targetPos: targetPos,
+  targetTile: targetTile
 })
 
 export const navigateError = (targetPos, errors) => ({
@@ -65,6 +68,16 @@ export const refreshAllSuccess = (serverPos, serverTiles) => ({
   type: REFRESH_ALL_SUCCESS,
   serverPos: serverPos,
   serverTiles: serverTiles
+})
+
+export const focusTile = (targetPos) => ({
+  type: FOCUS_TILE,
+  targetPos: targetPos
+})
+
+export const clearFocusTile = (targetPos) => ({
+  type: CLEAR_FOCUS_TILE,
+  targetPos: targetPos
 })
 
 export const showErrors = (errors) => ({
@@ -128,8 +141,7 @@ const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
 
 const updateVisibilities = (tiles, clientPos, targetPos) => {
   const directions = [northOf, eastOf, southOf, westOf]
-
-  for (let direction of directions) {
+  for (const direction of directions) {
     const clientPosOffset = direction(clientPos)
     tiles = updatePropsAt(tiles, clientPosOffset, {
       isCandidate: false
@@ -172,6 +184,7 @@ const clientToServerPos = (clientPos, clientOffset) => (
 
 export default function reducer (state = getDefaultState(), action) {
   let tiles
+  let targetPos
   switch (action.type) {
     case REFRESH_ALL_SUCCESS:
       const clientOffset = Position(
@@ -201,8 +214,9 @@ export default function reducer (state = getDefaultState(), action) {
         tiles: tiles
       }
     case NAVIGATE_ERROR:
+      targetPos = serverToClientPos(action.targetPos, state.clientOffset)
       tiles = state.tiles.slice()
-      tiles = updatePropsAt(tiles, action.targetPos, {
+      tiles = updatePropsAt(tiles, targetPos, {
         isLoading: false
       })
       return {
@@ -211,20 +225,20 @@ export default function reducer (state = getDefaultState(), action) {
         errors: action.errors
       }
     case NAVIGATE_SUCCESS:
-      const newPos = serverToClientPos(action.newPos, state.clientOffset)
+      targetPos = serverToClientPos(action.targetPos, state.clientOffset)
       tiles = state.tiles.slice()
-      tiles = updateVisibilities(tiles, state.clientPos, newPos)
+      tiles = updateVisibilities(tiles, state.clientPos, targetPos)
 
-      const rotation = getPropsAt(tiles, newPos).rotation
-      tiles = updatePropsAt(tiles, newPos, {
+      const rotation = getPropsAt(tiles, targetPos).rotation
+      tiles = updatePropsAt(tiles, targetPos, {
         isLoading: false,
-        background: action.newTile.background,
+        background: action.targetTile.background,
         rotation: rotation != null ? rotation : _.random(-1.8, 1.5, true)
       })
       return {
         ...state,
         tiles: tiles,
-        clientPos: newPos
+        clientPos: targetPos
       }
     case SHOW_ERRORS:
       return {
@@ -236,6 +250,24 @@ export default function reducer (state = getDefaultState(), action) {
       return {
         ...state,
         errors: null
+      }
+    case FOCUS_TILE:
+      tiles = state.tiles.slice()
+      tiles = updatePropsAt(tiles, action.targetPos, {
+        isFocused: true
+      })
+      return {
+        ...state,
+        tiles
+      }
+    case CLEAR_FOCUS_TILE:
+      tiles = state.tiles.slice()
+      tiles = updatePropsAt(tiles, action.targetPos, {
+        isFocused: false
+      })
+      return {
+        ...state,
+        tiles
       }
     default:
       return state
@@ -274,12 +306,23 @@ function * onShowErrors (seconds, action) {
   yield put(clearErrors())
 }
 
+function * onFocusTile (seconds, focusCurrent = false, action) {
+  const clientPos = yield select((state) => state.game.clientPos)
+  const targetPos = focusCurrent ? clientPos : action.targetPos
+  yield put(focusTile(targetPos))
+  yield delay(seconds * 1000)
+  yield put(clearFocusTile(targetPos))
+}
+
 export const sagas = [
   function * watchActions () {
-    yield takeLatest(NAVIGATE_REQUEST, onNavigateRequest)
-    yield takeLatest(REFRESH_ALL_REQUEST, onRefreshAllRequest)
+    yield takeEvery(REFRESH_ALL_REQUEST, onRefreshAllRequest)
+    yield takeEvery(REFRESH_ALL_REQUEST, onFocusTile, 0.5, true)
+    yield takeEvery(NAVIGATE_REQUEST, onNavigateRequest)
+    yield takeEvery(NAVIGATE_SUCCESS, onFocusTile, 0.5)
   },
   function * watchErrors () {
-    yield takeLatest(NAVIGATE_ERROR, onShowErrors, 1.6)
+    yield takeEvery(NAVIGATE_ERROR, onShowErrors, 2)
+    yield takeEvery(NAVIGATE_ERROR, onFocusTile, 0.5, true)
   }
 ]
