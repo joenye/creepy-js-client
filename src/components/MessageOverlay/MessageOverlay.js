@@ -16,8 +16,6 @@ class MessageOverlay extends Component {
       const clickX = this.props.clickPos.pageX
       const clickY = this.props.clickPos.pageY
 
-      console.log(clickX, clickY)
-
       const left = (clickX - (width / 2)) + 'px'
       const top = (clickY - (height / 2)) + 'px'
 

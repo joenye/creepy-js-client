@@ -1,6 +1,6 @@
 import io from 'socket.io-client'
 
-import { navigateSuccess, navigateError, refreshSuccess } from '../../redux/modules/game.js'
+import { navigateSuccess, navigateError, refreshAllSuccess } from '../../redux/modules/game.js'
 
 const configureSocket = (dispatch) => {
   const socket = io('localhost:5000', {
@@ -14,13 +14,13 @@ const configureSocket = (dispatch) => {
 
     switch (event.status) {
       case 'NAVIGATE_SUCCESS':
-        dispatch(navigateSuccess(message.new_pos, message.background))
+        dispatch(navigateSuccess(message.new_pos, message.new_tile))
         break
       case 'NAVIGATE_ERROR':
         dispatch(navigateError(message.target_pos, message.errors))
         break
-      case 'REFRESH_SUCCESS':
-        dispatch(refreshSuccess(message.current_pos))
+      case 'REFRESH_ALL_SUCCESS':
+        dispatch(refreshAllSuccess(message.current_pos, message.all_tiles))
         break
       default:
         break

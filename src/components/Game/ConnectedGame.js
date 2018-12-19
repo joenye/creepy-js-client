@@ -1,7 +1,7 @@
 import { connect } from 'react-redux'
 
 import Game from './Game.js'
-import { navigateRequest, receiveClick, refreshRequest } from '../../redux/modules/game.js'
+import { navigateRequest, receiveClick, refreshAllRequest } from '../../redux/modules/game.js'
 
 const mapStateToProps = (state, ownProps) => ({
   tiles: state.game.tiles
@@ -13,7 +13,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     dispatch(navigateRequest(targetPos))
   },
   onMount: () => {
-    dispatch(refreshRequest())
+    dispatch(refreshAllRequest())
   }
 })
 

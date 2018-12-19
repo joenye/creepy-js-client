@@ -25,8 +25,8 @@ const NAVIGATE_REQUEST = 'NAVIGATE_REQUEST'
 const NAVIGATE_SUCCESS = 'NAVIGATE_SUCCESS'
 const NAVIGATE_ERROR = 'NAVIGATE_ERROR'
 
-const REFRESH_REQUEST = 'REFRESH_REQUEST'
-const REFRESH_SUCCESS = 'REFRESH_SUCCESS'
+const REFRESH_ALL_REQUEST = 'REFRESH_ALL_REQUEST'
+const REFRESH_ALL_SUCCESS = 'REFRESH_ALL_SUCCESS'
 
 const SHOW_ERRORS = 'SHOW_ERRORS'
 const CLEAR_ERRORS = 'CLEAR_ERRORS'
@@ -45,10 +45,10 @@ export const navigateRequest = (targetPos) => ({
   targetPos: targetPos
 })
 
-export const navigateSuccess = (newPos, background) => ({
+export const navigateSuccess = (newPos, newTile) => ({
   type: NAVIGATE_SUCCESS,
   newPos: newPos,
-  background: background
+  newTile: newTile
 })
 
 export const navigateError = (targetPos, errors) => ({
@@ -57,13 +57,14 @@ export const navigateError = (targetPos, errors) => ({
   errors: errors
 })
 
-export const refreshRequest = () => ({
-  type: REFRESH_REQUEST
+export const refreshAllRequest = () => ({
+  type: REFRESH_ALL_REQUEST
 })
 
-export const refreshSuccess = (serverPos) => ({
-  type: REFRESH_SUCCESS,
-  serverPos: serverPos
+export const refreshAllSuccess = (serverPos, serverTiles) => ({
+  type: REFRESH_ALL_SUCCESS,
+  serverPos: serverPos,
+  serverTiles: serverTiles
 })
 
 export const showErrors = (errors) => ({
@@ -82,32 +83,46 @@ export const clearErrors = () => ({
 const getDefaultState = () => {
   const height = 10
   const width = 10 // TODO: Dynamically grow structure
-  const entrancePos = Position(2, 3, 0)
+  const initialPos = Position(2, 3, 0)
 
-  let tiles = getInitialTiles(width, height, entrancePos)
-  tiles = updateVisibilities(tiles, entrancePos, entrancePos)
+  let tiles = getInitialTiles(width, height, initialPos)
+  tiles = updateVisibilities(tiles, initialPos, initialPos)
 
   return {
     errors: null,
     clickPos: { pageX: 0, pageY: 0 },
     lastErrorClickPos: { pageX: 0, pageY: 0 },
     tiles: tiles,
-    clientPos: entrancePos
+    clientPos: initialPos
   }
 }
 
-const getInitialTiles = (width, height, entrancePos) => {
+const getInitialTiles = (width, height, initialPos) => {
   let tiles = PositionGrid(width, height)
   tiles = updateGridProps(tiles, {
     isLoading: false,
     visibility: TileVisibility.HIDDEN
   })
-  tiles = updatePropsAt(tiles, entrancePos, {
+  tiles = updatePropsAt(tiles, initialPos, {
     rotation: 0,
-    isLoading: true,
+    isLoading: false,
     visibility: TileVisibility.CURRENT
   })
 
+  return tiles
+}
+
+const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
+  for (let floor in serverTiles) {
+    for (let serverTile of serverTiles[floor]) {
+      const pos = serverToClientPos(serverTile.position, clientOffset)
+      const visibility = _.isEqual(pos, clientPos) ? TileVisibility.CURRENT : TileVisibility.VISITED
+      tiles = updatePropsAt(tiles, pos, {
+        background: serverTile.background,
+        visibility: visibility
+      })
+    }
+  }
   return tiles
 }
 
@@ -158,6 +173,19 @@ const clientToServerPos = (clientPos, clientOffset) => (
 export default function reducer (state = getDefaultState(), action) {
   let tiles
   switch (action.type) {
+    case REFRESH_ALL_SUCCESS:
+      const clientOffset = Position(
+        state.clientPos.x - action.serverPos.x,
+        state.clientPos.y - action.serverPos.y,
+        state.clientPos.z - action.serverPos.z
+      )
+      tiles = state.tiles.slice()
+      tiles = refreshTiles(tiles, action.serverTiles, state.clientPos, clientOffset)
+      return {
+        ...state,
+        tiles: tiles,
+        clientOffset: clientOffset
+      }
     case RECEIVE_CLICK:
       return {
         ...state,
@@ -190,23 +218,13 @@ export default function reducer (state = getDefaultState(), action) {
       const rotation = getPropsAt(tiles, newPos).rotation
       tiles = updatePropsAt(tiles, newPos, {
         isLoading: false,
-        background: action.background,
+        background: action.newTile.background,
         rotation: rotation != null ? rotation : _.random(-1.8, 1.5, true)
       })
       return {
         ...state,
         tiles: tiles,
         clientPos: newPos
-      }
-    case REFRESH_SUCCESS:
-      // TODO: Update tiles too
-      return {
-        ...state,
-        clientOffset: Position(
-          state.clientPos.x - action.serverPos.x,
-          state.clientPos.y - action.serverPos.y,
-          state.clientPos.z - action.serverPos.z
-        )
       }
     case SHOW_ERRORS:
       return {
@@ -228,7 +246,7 @@ export default function reducer (state = getDefaultState(), action) {
  * Sagas
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-function * onRefreshRequest () {
+function * onRefreshAllRequest () {
   const payload = {
     action: {
       name: 'refresh_all'
@@ -259,7 +277,7 @@ function * onShowErrors (seconds, action) {
 export const sagas = [
   function * watchActions () {
     yield takeLatest(NAVIGATE_REQUEST, onNavigateRequest)
-    yield takeLatest(REFRESH_REQUEST, onRefreshRequest)
+    yield takeLatest(REFRESH_ALL_REQUEST, onRefreshAllRequest)
   },
   function * watchErrors () {
     yield takeLatest(NAVIGATE_ERROR, onShowErrors, 1.6)
