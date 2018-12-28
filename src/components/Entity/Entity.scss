@@ -1,0 +1,31 @@
+.stairs {
+  position: relative;
+  z-index: 100;
+
+  &-up {
+    background-image: url('./assets/stairs-up.svg');
+    background-size: 100% auto;
+
+    &__secret {
+
+    }
+
+    &:hover {
+      filter: invert(0.5)
+    }
+
+  }
+
+  &-down {
+    background-image: url('./assets/stairs-down.svg');
+    background-size: 100% auto;
+
+    &__secret {
+
+    }
+
+    &:hover {
+      filter: invert(0.5)
+    }
+  }
+}

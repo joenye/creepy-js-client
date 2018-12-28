@@ -11,7 +11,9 @@ const new2dArray = (width, height) => {
 export const gridWidth = (grid) => grid[0].length
 export const gridHeight = (grid) => grid.length
 
-export const getPropsAt = (grid, position) => grid[position.x][position.y]
+export const getPropsAt = (grid, position) => {
+  return grid[position.x][position.y]
+}
 
 export const updatePropsAt = (grid, position, newProps) => {
   if (!(grid.hasOwnProperty(position.x) && grid[position.x].hasOwnProperty(position.y))) {

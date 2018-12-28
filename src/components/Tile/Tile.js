@@ -1,8 +1,10 @@
 import React, { Component } from 'react'
 import scrollIntoView from 'scroll-into-view'
+import classNames from 'classnames'
 
 import './Tile.css'
 
+import Entity from '../Entity/Entity.js'
 import LoadingWheel from '../LoadingWheel/LoadingWheel.js'
 
 export const TileVisibility = {
@@ -18,7 +20,13 @@ class Tile extends Component {
   }
 
   render () {
-    const { background, isLoading, isFocused, isCandidate, visibility, rotation } = this.props
+    const {
+      background, entities, isLoading, isFocused, isCandidate, pos,
+      visibility, rotation
+    } = this.props
+    if (this.props.pos[0] === 4 && this.props.pos[1] === 4) {
+      console.log(this.props)
+    }
     const { onClick } = this.props
 
     if (isFocused && this.ref.current) {
@@ -37,13 +45,28 @@ class Tile extends Component {
         <div className='container'>
           { isLoading && <LoadingWheel /> }
           <div
-            className={`
-              overlay
-              ${isCandidate ? 'is-candidate' : ''}
-              ${isLoading ? 'is-loading' : ''}
-              ${visibility}`}
+            className={classNames(
+              'overlay',
+              isCandidate && 'is-candidate',
+              isLoading && 'is-loading',
+              visibility)}
             style={{ transform: `rotate(${rotation}deg)` }}
           >
+            {entities && Object.entries(entities).map(([entity, val]) => {
+              const key = [pos, entity]
+              switch (entity) {
+                case 'stairs_up':
+                  return <Entity.StairsUp pos={val.pos} key={key} onClick={onClick} />
+                case 'stairs_up_secret':
+                  return <Entity.StairsUp pos={val.pos} isSecret key={key} onClick={onClick} />
+                case 'stairs_down':
+                  return <Entity.StairsDown pos={val.pos} key={key} onClick={onClick} />
+                case 'stairs_down_secret':
+                  return <Entity.StairsDown pos={val.pos} isSecret key={key} onClick={onClick} />
+                default:
+                  return ''
+              }
+            })}
             {background && <span dangerouslySetInnerHTML={{ __html: background }} />}
           </div>
         </div>

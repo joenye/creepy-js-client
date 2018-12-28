@@ -93,20 +93,47 @@ export const clearErrors = () => ({
  * Reducer helpers
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-const getDefaultState = () => {
-  const height = 10
-  const width = 10 // TODO: Dynamically grow structure
-  const initialPos = Position(2, 3, 0)
+const MAP_SIZE = 10 // TODO: Dynamically grow structure
+const MAP_CENTRE = Position(Math.floor(MAP_SIZE / 2) - 1, Math.floor(MAP_SIZE / 2) - 1, 0)
 
-  let tiles = getInitialTiles(width, height, initialPos)
-  tiles = updateVisibilities(tiles, initialPos, initialPos)
+// const getDefaultState = () => {
+//   let tiles = [] // [z][x][y]
+//   tiles[0] = getInitialTiles(MAP_SIZE, MAP_SIZE, MAP_CENTRE)
+//   tiles[0] = updateVisibilities(tiles[0], MAP_CENTRE, MAP_CENTRE)
+
+//   return {
+//     errors: null,
+//     clickPos: { pageX: 0, pageY: 0 },
+//     lastErrorClickPos: { pageX: 0, pageY: 0 },
+//     tiles: tiles,
+//     clientPos: MAP_CENTRE
+//   }
+// }
+
+// const getInitialTiles = (width, height, initialPos) => {
+//   let tiles = PositionGrid(width, height)
+//   tiles = updateGridProps(tiles, {
+//     isLoading: false,
+//     visibility: TileVisibility.HIDDEN
+//   })
+//   tiles = updatePropsAt(tiles, initialPos, {
+//     rotation: 0,
+//     isLoading: false,
+//     visibility: TileVisibility.CURRENT
+//   })
+
+//   return tiles
+//
+const getDefaultState = () => {
+  let tiles = getInitialTiles(MAP_SIZE, MAP_SIZE, MAP_CENTRE)
+  tiles = updateVisibilities(tiles, MAP_CENTRE, MAP_CENTRE)
 
   return {
     errors: null,
     clickPos: { pageX: 0, pageY: 0 },
     lastErrorClickPos: { pageX: 0, pageY: 0 },
     tiles: tiles,
-    clientPos: initialPos
+    clientPos: MAP_CENTRE
   }
 }
 
@@ -128,10 +155,11 @@ const getInitialTiles = (width, height, initialPos) => {
 const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
   for (let floor in serverTiles) {
     for (let serverTile of serverTiles[floor]) {
-      const pos = serverToClientPos(serverTile.position, clientOffset)
+      const pos = serverToClientPos(serverTile.pos, clientOffset)
       const visibility = _.isEqual(pos, clientPos) ? TileVisibility.CURRENT : TileVisibility.VISITED
       tiles = updatePropsAt(tiles, pos, {
         background: serverTile.background,
+        entities: serverTile.entities,
         visibility: visibility
       })
     }
@@ -162,6 +190,14 @@ const updateVisibilities = (tiles, clientPos, targetPos) => {
   return tiles
 }
 
+const getClientOffset = (clientPos, serverPos) => (
+  Position(
+    clientPos.x - serverPos.x,
+    clientPos.y - serverPos.y,
+    clientPos.z - serverPos.z
+  )
+)
+
 const serverToClientPos = (serverPos, clientOffset) => (
   Position(
     serverPos.x + clientOffset.x,
@@ -185,13 +221,10 @@ const clientToServerPos = (clientPos, clientOffset) => (
 export default function reducer (state = getDefaultState(), action) {
   let tiles
   let targetPos
+  let clientOffset
   switch (action.type) {
     case REFRESH_ALL_SUCCESS:
-      const clientOffset = Position(
-        state.clientPos.x - action.serverPos.x,
-        state.clientPos.y - action.serverPos.y,
-        state.clientPos.z - action.serverPos.z
-      )
+      clientOffset = getClientOffset(state.clientPos, action.serverPos)
       tiles = state.tiles.slice()
       tiles = refreshTiles(tiles, action.serverTiles, state.clientPos, clientOffset)
       return {
@@ -205,8 +238,9 @@ export default function reducer (state = getDefaultState(), action) {
         clickPos: action.clickPos
       }
     case NAVIGATE_REQUEST:
+      targetPos = action.targetPos
       tiles = state.tiles.slice()
-      tiles = updatePropsAt(tiles, action.targetPos, {
+      tiles = updatePropsAt(tiles, targetPos, {
         isLoading: true
       })
       return {
@@ -233,6 +267,7 @@ export default function reducer (state = getDefaultState(), action) {
       tiles = updatePropsAt(tiles, targetPos, {
         isLoading: false,
         background: action.targetTile.background,
+        entities: action.targetTile.entities,
         rotation: rotation != null ? rotation : _.random(-1.8, 1.5, true)
       })
       return {

@@ -3,15 +3,34 @@ import React, { Component } from 'react'
 import './Grid.css'
 
 import Tile from '../Tile/Tile.js'
-import Position from '../../utils/position.js'
+import Position, { upOf, downOf } from '../../utils/position.js'
 import { getPropsAt, gridWidth, gridHeight } from '../../utils/positionGrid.js'
 
 class Grid extends Component {
   renderTile (gridPosition) {
+    console.log(this.props.tiles[4][4])
+    // console.log(gridPosition, this.props.tiles, getPropsAt(this.props.tiles, gridPosition))
     return (
       <Tile
         key={[gridPosition.x, gridPosition.y, gridPosition.floor]}
-        onClick={(event) => this.props.onClick(event, gridPosition)}
+        pos={[gridPosition.x, gridPosition.y, gridPosition.floor]}
+        onClick={(event, meta) => {
+          if (!meta) {
+            // Clicked a tile
+            meta = { 'target': 'tile', 'targetPos': gridPosition }
+          }
+
+          if (meta.target === 'stairs') {
+            // Add targetPos to existing event
+            if (meta.direction === 'up') {
+              meta.targetPos = upOf(gridPosition)
+            }
+            if (meta.direction === 'down') {
+              meta.targetPos = downOf(gridPosition)
+            }
+          }
+          this.props.onClick(event, meta)
+        }}
         {...getPropsAt(this.props.tiles, gridPosition)}
       />
     )
