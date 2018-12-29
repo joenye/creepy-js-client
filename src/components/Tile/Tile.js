@@ -24,9 +24,6 @@ class Tile extends Component {
       background, entities, isLoading, isFocused, isCandidate, pos,
       visibility, rotation
     } = this.props
-    if (this.props.pos[0] === 4 && this.props.pos[1] === 4) {
-      console.log(this.props)
-    }
     const { onClick } = this.props
 
     if (isFocused && this.ref.current) {

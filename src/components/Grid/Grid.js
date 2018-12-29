@@ -8,25 +8,24 @@ import { getPropsAt, gridWidth, gridHeight } from '../../utils/positionGrid.js'
 
 class Grid extends Component {
   renderTile (gridPosition) {
-    console.log(this.props.tiles[4][4])
-    // console.log(gridPosition, this.props.tiles, getPropsAt(this.props.tiles, gridPosition))
+    let pos = Position(gridPosition.x, gridPosition.y, this.props.currentFloor)
     return (
       <Tile
-        key={[gridPosition.x, gridPosition.y, gridPosition.floor]}
-        pos={[gridPosition.x, gridPosition.y, gridPosition.floor]}
+        key={JSON.stringify(pos)}
+        pos={JSON.stringify(pos)}
         onClick={(event, meta) => {
           if (!meta) {
             // Clicked a tile
-            meta = { 'target': 'tile', 'targetPos': gridPosition }
+            meta = { 'target': 'tile', 'targetPos': pos }
           }
 
           if (meta.target === 'stairs') {
             // Add targetPos to existing event
             if (meta.direction === 'up') {
-              meta.targetPos = upOf(gridPosition)
+              meta.targetPos = upOf(pos)
             }
             if (meta.direction === 'down') {
-              meta.targetPos = downOf(gridPosition)
+              meta.targetPos = downOf(pos)
             }
           }
           this.props.onClick(event, meta)

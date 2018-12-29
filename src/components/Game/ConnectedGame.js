@@ -4,8 +4,9 @@ import Game from './Game.js'
 import { navigateRequest, receiveClick, refreshAllRequest, getFloor } from '../../redux/modules/game.js'
 
 const mapStateToProps = (state, ownProps) => ({
-  // tiles: state.game.tiles[getFloor(state.game)]
-  tiles: state.game.tiles
+  // tiles: state.game.floors[getFloor(state.game)] <-- This doesn't work
+  tiles: state.game.tiles,
+  currentFloor: getFloor(state.game)
 })
 
 const mapDispatchToProps = (dispatch, ownProps) => ({

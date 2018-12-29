@@ -12,14 +12,15 @@ class Game extends Component {
   }
 
   render () {
-    const { tiles, onClick } = this.props
+    const { tiles, currentFloor, onClick } = this.props
     return (
       <div className='Game'>
         <ConnectedDebugOverlay />
         <ConnectedMessageOverlay />
         <Grid
           className='game'
-          tiles={tiles}
+          currentFloor={currentFloor}
+          tiles={tiles[currentFloor]}
           onClick={onClick}
         />
       </div>

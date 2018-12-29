@@ -96,37 +96,10 @@ export const clearErrors = () => ({
 const MAP_SIZE = 10 // TODO: Dynamically grow structure
 const MAP_CENTRE = Position(Math.floor(MAP_SIZE / 2) - 1, Math.floor(MAP_SIZE / 2) - 1, 0)
 
-// const getDefaultState = () => {
-//   let tiles = [] // [z][x][y]
-//   tiles[0] = getInitialTiles(MAP_SIZE, MAP_SIZE, MAP_CENTRE)
-//   tiles[0] = updateVisibilities(tiles[0], MAP_CENTRE, MAP_CENTRE)
-
-//   return {
-//     errors: null,
-//     clickPos: { pageX: 0, pageY: 0 },
-//     lastErrorClickPos: { pageX: 0, pageY: 0 },
-//     tiles: tiles,
-//     clientPos: MAP_CENTRE
-//   }
-// }
-
-// const getInitialTiles = (width, height, initialPos) => {
-//   let tiles = PositionGrid(width, height)
-//   tiles = updateGridProps(tiles, {
-//     isLoading: false,
-//     visibility: TileVisibility.HIDDEN
-//   })
-//   tiles = updatePropsAt(tiles, initialPos, {
-//     rotation: 0,
-//     isLoading: false,
-//     visibility: TileVisibility.CURRENT
-//   })
-
-//   return tiles
-//
 const getDefaultState = () => {
-  let tiles = getInitialTiles(MAP_SIZE, MAP_SIZE, MAP_CENTRE)
-  tiles = updateVisibilities(tiles, MAP_CENTRE, MAP_CENTRE)
+  let tiles = {} // [z][x][y]
+  tiles[0] = getInitialTiles()
+  tiles[0] = updateVisibilities(tiles[0], MAP_CENTRE, MAP_CENTRE)
 
   return {
     errors: null,
@@ -137,7 +110,7 @@ const getDefaultState = () => {
   }
 }
 
-const getInitialTiles = (width, height, initialPos) => {
+const getInitialTiles = (width = MAP_SIZE, height = MAP_SIZE, initialPos = MAP_CENTRE) => {
   let tiles = PositionGrid(width, height)
   tiles = updateGridProps(tiles, {
     isLoading: false,
@@ -156,8 +129,13 @@ const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
   for (let floor in serverTiles) {
     for (let serverTile of serverTiles[floor]) {
       const pos = serverToClientPos(serverTile.pos, clientOffset)
-      const visibility = _.isEqual(pos, clientPos) ? TileVisibility.CURRENT : TileVisibility.VISITED
-      tiles = updatePropsAt(tiles, pos, {
+      const visibility = _.isEqual({ x: pos.x, y: pos.y }, { x: clientPos.x, y: clientPos.y })
+        ? TileVisibility.CURRENT : TileVisibility.VISITED
+      if (!tiles[floor]) {
+        tiles[floor] = getInitialTiles()
+        tiles[floor] = updateVisibilities(tiles[floor], MAP_CENTRE, MAP_CENTRE)
+      }
+      tiles[floor] = updatePropsAt(tiles[floor], pos, {
         background: serverTile.background,
         entities: serverTile.entities,
         visibility: visibility
@@ -202,7 +180,7 @@ const serverToClientPos = (serverPos, clientOffset) => (
   Position(
     serverPos.x + clientOffset.x,
     serverPos.y + clientOffset.y,
-    serverPos.z + clientOffset.z
+    serverPos.z // Always in sync
   )
 )
 
@@ -210,8 +188,12 @@ const clientToServerPos = (clientPos, clientOffset) => (
   Position(
     clientPos.x - clientOffset.x,
     clientPos.y - clientOffset.y,
-    clientPos.z - clientOffset.z
+    clientPos.z // Always in sync
   )
+)
+
+export const getFloor = (state) => (
+  state.clientPos.z - (state.clientOffset ? state.clientOffset.z : 0)
 )
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -220,16 +202,19 @@ const clientToServerPos = (clientPos, clientOffset) => (
 
 export default function reducer (state = getDefaultState(), action) {
   let tiles
+  let floor
   let targetPos
   let clientOffset
   switch (action.type) {
     case REFRESH_ALL_SUCCESS:
-      clientOffset = getClientOffset(state.clientPos, action.serverPos)
-      tiles = state.tiles.slice()
+      let clientPos = { ...state.clientPos, z: action.serverPos.z }
+      clientOffset = getClientOffset(clientPos, action.serverPos)
+      tiles = { ...state.tiles }
       tiles = refreshTiles(tiles, action.serverTiles, state.clientPos, clientOffset)
       return {
         ...state,
         tiles: tiles,
+        clientPos: clientPos,
         clientOffset: clientOffset
       }
     case RECEIVE_CLICK:
@@ -239,8 +224,9 @@ export default function reducer (state = getDefaultState(), action) {
       }
     case NAVIGATE_REQUEST:
       targetPos = action.targetPos
-      tiles = state.tiles.slice()
-      tiles = updatePropsAt(tiles, targetPos, {
+      tiles = { ...state.tiles }
+      floor = action.targetPos.z
+      tiles[floor] = updatePropsAt(tiles[floor], targetPos, {
         isLoading: true
       })
       return {
@@ -249,8 +235,9 @@ export default function reducer (state = getDefaultState(), action) {
       }
     case NAVIGATE_ERROR:
       targetPos = serverToClientPos(action.targetPos, state.clientOffset)
-      tiles = state.tiles.slice()
-      tiles = updatePropsAt(tiles, targetPos, {
+      tiles = { ...state.tiles }
+      floor = getFloor(state)
+      tiles[floor] = updatePropsAt(tiles[floor], targetPos, {
         isLoading: false
       })
       return {
@@ -260,11 +247,12 @@ export default function reducer (state = getDefaultState(), action) {
       }
     case NAVIGATE_SUCCESS:
       targetPos = serverToClientPos(action.targetPos, state.clientOffset)
-      tiles = state.tiles.slice()
-      tiles = updateVisibilities(tiles, state.clientPos, targetPos)
+      tiles = { ...state.tiles }
+      floor = action.targetPos.z
+      tiles[floor] = updateVisibilities(tiles[floor], state.clientPos, targetPos)
 
-      const rotation = getPropsAt(tiles, targetPos).rotation
-      tiles = updatePropsAt(tiles, targetPos, {
+      const rotation = getPropsAt(tiles[floor], targetPos).rotation
+      tiles[floor] = updatePropsAt(tiles[floor], targetPos, {
         isLoading: false,
         background: action.targetTile.background,
         entities: action.targetTile.entities,
@@ -287,8 +275,9 @@ export default function reducer (state = getDefaultState(), action) {
         errors: null
       }
     case FOCUS_TILE:
-      tiles = state.tiles.slice()
-      tiles = updatePropsAt(tiles, action.targetPos, {
+      tiles = { ...state.tiles }
+      floor = getFloor(state)
+      tiles[floor] = updatePropsAt(tiles[floor], action.targetPos, {
         isFocused: true
       })
       return {
@@ -296,8 +285,9 @@ export default function reducer (state = getDefaultState(), action) {
         tiles
       }
     case CLEAR_FOCUS_TILE:
-      tiles = state.tiles.slice()
-      tiles = updatePropsAt(tiles, action.targetPos, {
+      tiles = { ...state.tiles }
+      floor = getFloor(state)
+      tiles[floor] = updatePropsAt(tiles[floor], action.targetPos, {
         isFocused: false
       })
       return {
