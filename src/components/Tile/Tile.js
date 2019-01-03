@@ -19,6 +19,18 @@ class Tile extends Component {
     this.ref = React.createRef()
   }
 
+  getBackground = (floor) => {
+    switch (floor) {
+      case 0: return '#9B7653'
+      case 1: return '#72471D'
+      case 2: return '#9B3C09'
+      case 3: return '#B2370A'
+      case 4: return '#B2120A'
+      default:
+        return '#5E065B'
+    }
+  }
+
   render () {
     const {
       background, entities, isLoading, isFocused, isCandidate, pos,
@@ -47,10 +59,10 @@ class Tile extends Component {
               isCandidate && 'is-candidate',
               isLoading && 'is-loading',
               visibility)}
-            style={{ transform: `rotate(${rotation}deg)` }}
+            style={{ transform: `rotate(${rotation}deg)`, background: this.getBackground(pos.z) }}
           >
             {entities && Object.entries(entities).map(([entity, val]) => {
-              const key = [pos, entity]
+              const key = [JSON.stringify(pos), JSON.stringify(entity)]
               switch (entity) {
                 case 'stairs_up':
                   return <Entity.StairsUp pos={val.pos} key={key} onClick={onClick} />

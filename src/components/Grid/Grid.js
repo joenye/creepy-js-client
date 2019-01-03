@@ -12,7 +12,7 @@ class Grid extends Component {
     return (
       <Tile
         key={JSON.stringify(pos)}
-        pos={JSON.stringify(pos)}
+        pos={pos}
         onClick={(event, meta) => {
           if (!meta) {
             // Clicked a tile

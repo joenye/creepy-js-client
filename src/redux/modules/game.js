@@ -98,8 +98,7 @@ const MAP_CENTRE = Position(Math.floor(MAP_SIZE / 2) - 1, Math.floor(MAP_SIZE / 
 
 const getDefaultState = () => {
   let tiles = {} // [z][x][y]
-  tiles[0] = getInitialTiles()
-  tiles[0] = updateVisibilities(tiles[0], MAP_CENTRE, MAP_CENTRE)
+  tiles[0] = getOrCreateFloor(tiles, 0)
 
   return {
     errors: null,
@@ -118,11 +117,19 @@ const getInitialTiles = (width = MAP_SIZE, height = MAP_SIZE, initialPos = MAP_C
   })
   tiles = updatePropsAt(tiles, initialPos, {
     rotation: 0,
-    isLoading: false,
-    visibility: TileVisibility.CURRENT
+    isLoading: false
+    // visibility: TileVisibility.CURRENT
   })
 
   return tiles
+}
+
+const getOrCreateFloor = (tiles, floor) => {
+  if (!tiles[floor]) {
+    tiles[floor] = getInitialTiles()
+    tiles[floor] = updateVisibilities(tiles[floor], MAP_CENTRE, MAP_CENTRE)
+  }
+  return tiles[floor]
 }
 
 const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
@@ -131,10 +138,7 @@ const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
       const pos = serverToClientPos(serverTile.pos, clientOffset)
       const visibility = _.isEqual({ x: pos.x, y: pos.y }, { x: clientPos.x, y: clientPos.y })
         ? TileVisibility.CURRENT : TileVisibility.VISITED
-      if (!tiles[floor]) {
-        tiles[floor] = getInitialTiles()
-        tiles[floor] = updateVisibilities(tiles[floor], MAP_CENTRE, MAP_CENTRE)
-      }
+      tiles[floor] = getOrCreateFloor(tiles, floor)
       tiles[floor] = updatePropsAt(tiles[floor], pos, {
         background: serverTile.background,
         entities: serverTile.entities,
@@ -145,23 +149,25 @@ const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
   return tiles
 }
 
-const updateVisibilities = (tiles, clientPos, targetPos) => {
+const updateVisibilities = (tiles, prevPos, newPos) => {
+  console.log(prevPos, newPos)
   const directions = [northOf, eastOf, southOf, westOf]
   for (const direction of directions) {
-    const clientPosOffset = direction(clientPos)
-    tiles = updatePropsAt(tiles, clientPosOffset, {
+    const prevPosOffset = direction(prevPos)
+    tiles = updatePropsAt(tiles, prevPosOffset, {
       isCandidate: false
     })
-    const targetPosOffset = direction(targetPos)
-    tiles = updatePropsAt(tiles, targetPosOffset, {
+    const newPosOffset = direction(newPos)
+    tiles = updatePropsAt(tiles, newPosOffset, {
       isCandidate: true
     })
   }
 
-  tiles = updatePropsAt(tiles, clientPos, {
-    visibility: TileVisibility.VISITED
+  tiles = updatePropsAt(tiles, prevPos, {
+    visibility: TileVisibility.VISITED,
+    isCandidate: !_.isEqual([prevPos.x, prevPos.y], [newPos.x, newPos.y])
   })
-  tiles = updatePropsAt(tiles, targetPos, {
+  tiles = updatePropsAt(tiles, newPos, {
     visibility: TileVisibility.CURRENT
   })
 
@@ -225,7 +231,8 @@ export default function reducer (state = getDefaultState(), action) {
     case NAVIGATE_REQUEST:
       targetPos = action.targetPos
       tiles = { ...state.tiles }
-      floor = action.targetPos.z
+      floor = targetPos.z
+      tiles[floor] = getOrCreateFloor(tiles, floor)
       tiles[floor] = updatePropsAt(tiles[floor], targetPos, {
         isLoading: true
       })
@@ -236,7 +243,7 @@ export default function reducer (state = getDefaultState(), action) {
     case NAVIGATE_ERROR:
       targetPos = serverToClientPos(action.targetPos, state.clientOffset)
       tiles = { ...state.tiles }
-      floor = getFloor(state)
+      floor = targetPos.z
       tiles[floor] = updatePropsAt(tiles[floor], targetPos, {
         isLoading: false
       })
@@ -331,9 +338,12 @@ function * onShowErrors (seconds, action) {
   yield put(clearErrors())
 }
 
-function * onFocusTile (seconds, focusCurrent = false, action) {
+function * onFocusTile (seconds, focusCurrent = false, delayBefore = false, action) {
   const clientPos = yield select((state) => state.game.clientPos)
   const targetPos = focusCurrent ? clientPos : action.targetPos
+  if (delayBefore) {
+    yield delay(seconds * 1000)
+  }
   yield put(focusTile(targetPos))
   yield delay(seconds * 1000)
   yield put(clearFocusTile(targetPos))
@@ -342,7 +352,7 @@ function * onFocusTile (seconds, focusCurrent = false, action) {
 export const sagas = [
   function * watchActions () {
     yield takeEvery(REFRESH_ALL_REQUEST, onRefreshAllRequest)
-    yield takeEvery(REFRESH_ALL_REQUEST, onFocusTile, 0.5, true)
+    yield takeEvery(REFRESH_ALL_REQUEST, onFocusTile, 0.5, true, true)
     yield takeEvery(NAVIGATE_REQUEST, onNavigateRequest)
     yield takeEvery(NAVIGATE_SUCCESS, onFocusTile, 0.5)
   },
