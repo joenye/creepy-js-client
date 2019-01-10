@@ -184,24 +184,23 @@ const updateVisibilities = (tiles, prevPos, newPos) => {
   return tiles
 }
 
-const getPlayerMarkerPos = (exitsPos, currentPos, prevPos) => {
+const getPlayerMarkerPos = (exitsPos, newPos, prevPos) => {
   if (!prevPos) {
     // Starting position (or we refreshed)
     return exitsPos['down']
   }
-  console.log(currentPos, prevPos)
+  console.log(newPos, prevPos, exitsPos)
   // Get direction navigated
-  if (_.isEqual(currentPos, northOf(prevPos))) {
+  if (_.isEqual(newPos, northOf(prevPos))) {
     return exitsPos['down']
-  } else if (_.isEqual(currentPos, eastOf(prevPos))) {
+  } else if (_.isEqual(newPos, eastOf(prevPos))) {
     return exitsPos['left']
-  } else if (_.isEqual(currentPos, southOf(prevPos))) {
+  } else if (_.isEqual(newPos, southOf(prevPos))) {
     return exitsPos['up']
-  } else if (_.isEqual(currentPos, westOf(prevPos))) {
+  } else if (_.isEqual(newPos, westOf(prevPos))) {
     return exitsPos['right']
-  } else if (_.isEqual(currentPos, upOf(prevPos))) {
-    return exitsPos['down']
-  } else if (_.isEqual(currentPos, downOf(prevPos))) {
+  } else if (_.isEqual(newPos, upOf(prevPos)) || _.isEqual(newPos, downOf(prevPos))) {
+    // TODO: Put next to secret stairs
     return exitsPos['down']
   } else {
     throw new Error()
@@ -305,7 +304,7 @@ export default function reducer (state = getDefaultState(), action) {
         markerPos: markerPos,
         rotation: rotation != null ? rotation : _.random(-1.8, 1.5, true)
       })
-      tiles[floor] = updatePropsAt(tiles[floor], state.clientPos, {
+      tiles[state.clientPos.z] = updatePropsAt(tiles[state.clientPos.z], state.clientPos, {
         markerPos: null
       })
       return {

@@ -4,7 +4,7 @@ import Game from './Game.js'
 import { navigateRequest, receiveClick, refreshAllRequest, getFloor } from '../../redux/modules/game.js'
 
 const mapStateToProps = (state, ownProps) => ({
-  // tiles: state.game.floors[getFloor(state.game)] <-- This doesn't work
+  // tiles: state.game.floors[getFloor(state.game)] <-- Don't try this - it doesn't work!
   tiles: state.game.tiles,
   currentFloor: getFloor(state.game)
 })

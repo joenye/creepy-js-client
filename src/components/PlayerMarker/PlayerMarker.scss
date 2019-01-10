@@ -1,6 +1,7 @@
 .marker {
   position: relative;
-  background-color: red;
+  // background-color: red;
+  background-image: url('https://cdn1.iconfinder.com/data/icons/ninja-things-1/1772/ninja-simple-512.png');
   border-radius: 50%;
   background-size: 100% auto;
   &:hover {
