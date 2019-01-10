@@ -6,6 +6,7 @@ import './Tile.css'
 
 import Entity from '../Entity/Entity.js'
 import LoadingWheel from '../LoadingWheel/LoadingWheel.js'
+import PlayerMarker from '../PlayerMarker/PlayerMarker.js'
 
 export const TileVisibility = {
   HIDDEN: 'hidden',
@@ -33,7 +34,7 @@ class Tile extends Component {
 
   render () {
     const {
-      background, entities, isLoading, isFocused, isCandidate, pos,
+      background, entities, isLoading, isFocused, isCandidate, pos, markerPos,
       visibility, rotation
     } = this.props
     const { onClick } = this.props
@@ -76,6 +77,7 @@ class Tile extends Component {
                   return ''
               }
             })}
+            {markerPos && <PlayerMarker pos={markerPos} />}
             {background && <span dangerouslySetInnerHTML={{ __html: background }} />}
           </div>
         </div>

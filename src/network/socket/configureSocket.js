@@ -3,7 +3,7 @@ import io from 'socket.io-client'
 import { navigateSuccess, navigateError, refreshAllSuccess } from '../../redux/modules/game.js'
 
 const configureSocket = (dispatch) => {
-  const socket = io('localhost:5000', {
+  const socket = io('192.168.0.12:5000', {
     // Prioritise websocket over polling
     transports: ['websocket', 'polling']
   })

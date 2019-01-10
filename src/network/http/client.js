@@ -33,7 +33,7 @@ const doJson = (url, params = {}, raw = false) => {
     .then(res => {
       if (!res.ok) {
         return res.json().then(err => {
-          throw Object.assign(new Error(), err)
+          throw new Error(err)
         })
       }
     })

@@ -6,7 +6,9 @@ import Position, {
   northOf,
   eastOf,
   southOf,
-  westOf
+  westOf,
+  upOf,
+  downOf
 } from '../../utils/position.js'
 import PositionGrid, {
   getPropsAt,
@@ -105,14 +107,24 @@ const getDefaultState = () => {
     clickPos: { pageX: 0, pageY: 0 },
     lastErrorClickPos: { pageX: 0, pageY: 0 },
     tiles: tiles,
-    clientPos: MAP_CENTRE
+    clientPos: MAP_CENTRE,
+    prevClientPos: null
   }
+}
+
+const getOrCreateFloor = (tiles, floor) => {
+  if (!tiles[floor]) {
+    tiles[floor] = getInitialTiles()
+    tiles[floor] = updateVisibilities(tiles[floor], MAP_CENTRE, MAP_CENTRE)
+  }
+  return tiles[floor]
 }
 
 const getInitialTiles = (width = MAP_SIZE, height = MAP_SIZE, initialPos = MAP_CENTRE) => {
   let tiles = PositionGrid(width, height)
   tiles = updateGridProps(tiles, {
     isLoading: false,
+    markerPos: null,
     visibility: TileVisibility.HIDDEN
   })
   tiles = updatePropsAt(tiles, initialPos, {
@@ -124,25 +136,24 @@ const getInitialTiles = (width = MAP_SIZE, height = MAP_SIZE, initialPos = MAP_C
   return tiles
 }
 
-const getOrCreateFloor = (tiles, floor) => {
-  if (!tiles[floor]) {
-    tiles[floor] = getInitialTiles()
-    tiles[floor] = updateVisibilities(tiles[floor], MAP_CENTRE, MAP_CENTRE)
-  }
-  return tiles[floor]
-}
-
-const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
+const refreshTiles = (tiles, serverTiles, clientPos, prevClientPos, clientOffset) => {
   for (let floor in serverTiles) {
     for (let serverTile of serverTiles[floor]) {
       const pos = serverToClientPos(serverTile.pos, clientOffset)
-      const visibility = _.isEqual({ x: pos.x, y: pos.y }, { x: clientPos.x, y: clientPos.y })
-        ? TileVisibility.CURRENT : TileVisibility.VISITED
+      let visibility = TileVisibility.VISITED
+      let markerPos = null
+      if (_.isEqual({ x: pos.x, y: pos.y }, { x: clientPos.x, y: clientPos.y })) {
+        // Current tile
+        visibility = TileVisibility.CURRENT
+        markerPos = getPlayerMarkerPos(serverTile.exits_pos, clientPos, prevClientPos)
+      }
       tiles[floor] = getOrCreateFloor(tiles, floor)
       tiles[floor] = updatePropsAt(tiles[floor], pos, {
         background: serverTile.background,
         entities: serverTile.entities,
-        visibility: visibility
+        exitsPos: serverTile.exits_pos,
+        visibility: visibility,
+        markerPos: markerPos
       })
     }
   }
@@ -150,7 +161,6 @@ const refreshTiles = (tiles, serverTiles, clientPos, clientOffset) => {
 }
 
 const updateVisibilities = (tiles, prevPos, newPos) => {
-  console.log(prevPos, newPos)
   const directions = [northOf, eastOf, southOf, westOf]
   for (const direction of directions) {
     const prevPosOffset = direction(prevPos)
@@ -172,6 +182,30 @@ const updateVisibilities = (tiles, prevPos, newPos) => {
   })
 
   return tiles
+}
+
+const getPlayerMarkerPos = (exitsPos, currentPos, prevPos) => {
+  if (!prevPos) {
+    // Starting position (or we refreshed)
+    return exitsPos['down']
+  }
+  console.log(currentPos, prevPos)
+  // Get direction navigated
+  if (_.isEqual(currentPos, northOf(prevPos))) {
+    return exitsPos['down']
+  } else if (_.isEqual(currentPos, eastOf(prevPos))) {
+    return exitsPos['left']
+  } else if (_.isEqual(currentPos, southOf(prevPos))) {
+    return exitsPos['up']
+  } else if (_.isEqual(currentPos, westOf(prevPos))) {
+    return exitsPos['right']
+  } else if (_.isEqual(currentPos, upOf(prevPos))) {
+    return exitsPos['down']
+  } else if (_.isEqual(currentPos, downOf(prevPos))) {
+    return exitsPos['down']
+  } else {
+    throw new Error()
+  }
 }
 
 const getClientOffset = (clientPos, serverPos) => (
@@ -211,12 +245,14 @@ export default function reducer (state = getDefaultState(), action) {
   let floor
   let targetPos
   let clientOffset
+  let markerPos
+  let exitsPos
   switch (action.type) {
     case REFRESH_ALL_SUCCESS:
       let clientPos = { ...state.clientPos, z: action.serverPos.z }
       clientOffset = getClientOffset(clientPos, action.serverPos)
       tiles = { ...state.tiles }
-      tiles = refreshTiles(tiles, action.serverTiles, state.clientPos, clientOffset)
+      tiles = refreshTiles(tiles, action.serverTiles, state.clientPos, state.prevClientPos, clientOffset)
       return {
         ...state,
         tiles: tiles,
@@ -256,19 +292,27 @@ export default function reducer (state = getDefaultState(), action) {
       targetPos = serverToClientPos(action.targetPos, state.clientOffset)
       tiles = { ...state.tiles }
       floor = action.targetPos.z
+      exitsPos = action.targetTile.exits_pos
       tiles[floor] = updateVisibilities(tiles[floor], state.clientPos, targetPos)
+      markerPos = getPlayerMarkerPos(exitsPos, targetPos, state.clientPos)
 
       const rotation = getPropsAt(tiles[floor], targetPos).rotation
       tiles[floor] = updatePropsAt(tiles[floor], targetPos, {
         isLoading: false,
         background: action.targetTile.background,
         entities: action.targetTile.entities,
+        exitsPos: exitsPos,
+        markerPos: markerPos,
         rotation: rotation != null ? rotation : _.random(-1.8, 1.5, true)
+      })
+      tiles[floor] = updatePropsAt(tiles[floor], state.clientPos, {
+        markerPos: null
       })
       return {
         ...state,
         tiles: tiles,
-        clientPos: targetPos
+        clientPos: targetPos,
+        prevClientPos: state.clientPos
       }
     case SHOW_ERRORS:
       return {

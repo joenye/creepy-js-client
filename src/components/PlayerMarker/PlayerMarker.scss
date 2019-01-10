@@ -1,0 +1,10 @@
+.marker {
+  position: relative;
+  background-color: red;
+  border-radius: 50%;
+  background-size: 100% auto;
+  &:hover {
+    filter: invert(0.5)
+  }
+
+}
