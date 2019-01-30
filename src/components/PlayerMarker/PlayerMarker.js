@@ -2,7 +2,7 @@ import React from 'react'
 
 import './PlayerMarker.css'
 
-const WIDTH = 35
+const WIDTH = 40
 
 const getOffset = (pos) => {
   if (pos.x === 0) {

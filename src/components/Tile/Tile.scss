@@ -2,6 +2,8 @@
 
 .Tile {
   min-width: 600px;
+  // TODO: Apply blur when menu appears
+  // filter: blur(15px);
   height: 400px;
   background: black;
 }

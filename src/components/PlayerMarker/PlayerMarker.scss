@@ -1,11 +1,13 @@
 .marker {
   position: relative;
   // background-color: red;
-  background-image: url('https://cdn1.iconfinder.com/data/icons/ninja-things-1/1772/ninja-simple-512.png');
+  // background-image: url('https://cdn1.iconfinder.com/data/icons/ninja-things-1/1772/ninja-simple-512.png');
+  background-image: url('https://cdn1.iconfinder.com/data/icons/ninja-things-1/720/ninja-background-512.png');
   border-radius: 50%;
   background-size: 100% auto;
   &:hover {
-    filter: invert(0.5)
+    opacity: 0.7;
+    filter: blur(1px);
   }
 
 }

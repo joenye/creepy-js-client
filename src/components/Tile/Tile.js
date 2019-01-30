@@ -41,7 +41,7 @@ class Tile extends Component {
 
     if (isFocused && this.ref.current) {
       scrollIntoView(this.ref.current, {
-        time: 200,
+        time: 300,
         align: {
           top: 0.5,
           left: 0.5
