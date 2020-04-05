@@ -1,29 +1,27 @@
-import { all } from 'redux-saga/effects'
-import createSagaMiddleware from 'redux-saga'
-import { composeWithDevTools } from 'redux-devtools-extension'
-import { applyMiddleware, combineReducers, createStore } from 'redux'
+import { applyMiddleware, combineReducers, createStore } from 'redux';
+import { composeWithDevTools } from 'redux-devtools-extension';
+import createSagaMiddleware from 'redux-saga';
+import { all } from 'redux-saga/effects';
 
-import game, { sagas as gameSagas } from '../redux/modules/game.js'
+import { configureListeners } from '../network/ws/listeners';
+import { gameReducer, gameSagas } from './modules/game';
 
 const configureStore = () => {
-  const reducers = { game }
-  const rootReducer = combineReducers(reducers)
+  const rootReducer = combineReducers({
+    game: gameReducer,
+  });
 
-  const sagas = [ ...gameSagas ]
-  const rootSaga = function * () {
-    yield all(sagas.map(saga => saga()))
-  }
-  const sagaMiddleware = createSagaMiddleware()
+  const sagas = [...gameSagas];
+  const rootSaga = function* () {
+    yield all(sagas.map((saga) => saga()));
+  };
+  const sagaMiddleware = createSagaMiddleware();
 
-  const store = createStore(
-    rootReducer,
-    composeWithDevTools(
-      applyMiddleware(sagaMiddleware)
-    )
-  )
-  sagaMiddleware.run(rootSaga)
+  const store = createStore(rootReducer, composeWithDevTools(applyMiddleware(sagaMiddleware)));
+  sagaMiddleware.run(rootSaga);
 
-  return store
-}
+  configureListeners(store.dispatch);
+  return store;
+};
 
-export default configureStore
+export default configureStore;
