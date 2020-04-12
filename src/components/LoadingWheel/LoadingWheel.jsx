@@ -1,4 +1,4 @@
-import './LoadingWheel.css';
+import './LoadingWheel.scss';
 
 import React from 'react';
 

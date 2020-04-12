@@ -1,4 +1,4 @@
-import './PlayerMarker.css';
+import './PlayerMarker.scss';
 
 import React from 'react';
 

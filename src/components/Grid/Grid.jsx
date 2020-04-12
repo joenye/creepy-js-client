@@ -1,4 +1,4 @@
-import './Grid.css';
+import './Grid.scss';
 
 import React, { Component } from 'react';
 

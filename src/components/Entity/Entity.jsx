@@ -1,4 +1,4 @@
-import './Entity.css';
+import './Entity.scss';
 
 import classNames from 'classnames';
 import React from 'react';

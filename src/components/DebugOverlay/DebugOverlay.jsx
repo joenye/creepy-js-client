@@ -1,4 +1,4 @@
-import './DebugOverlay.css';
+import './DebugOverlay.scss';
 
 import React from 'react';
 

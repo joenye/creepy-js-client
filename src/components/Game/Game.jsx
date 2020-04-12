@@ -1,4 +1,4 @@
-import './Game.css';
+import './Game.scss';
 
 import React, { Component } from 'react';
 

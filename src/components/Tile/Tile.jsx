@@ -1,4 +1,4 @@
-import './Tile.css';
+import './Tile.scss';
 
 import classNames from 'classnames';
 import React, { Component } from 'react';
