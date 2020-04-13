@@ -40,6 +40,8 @@ class Grid extends Component {
 
   renderRows() {
     const { tiles } = this.props;
+    if (!tiles) return null;
+
     const render = [];
     for (let y = gridHeight(tiles) - 1; y >= 0; y -= 1) {
       const row = [];

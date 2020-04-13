@@ -1,9 +1,11 @@
 .Grid {
+  display: block;
   background: black;
   table-layout: fixed;
   width: auto;
-  overflow-x: scroll;
+  // overflow-x: scroll;
   border-spacing: 10px;
+  transform: scale(0.4);
 }
 
 .Grid-row {
